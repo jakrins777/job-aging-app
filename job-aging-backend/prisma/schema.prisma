@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Table 1: เก็บประวัติทุกบรรทัดที่อัพโหลดเข้ามา
+model JobHistoryLog {
+  id          Int      @id @default(autoincrement())
+  job         String
+  suffix      String
+  operNum     Int
+  jobStatus   String   // 'R' หรือ 'S'
+  item        String?
+  qtyRelease  Int?
+  qty         Int?
+  productCode String?
+  wc          String?
+  wcDesc      String?
+  transDate   DateTime
+  uploadedAt  DateTime @default(now())
+}
+
+// Table 2: เก็บสถานะปัจจุบันเพื่อแสดงบน Dashboard
+model JobMaster {
+  jobId          String   @id // ใช้รูปแบบ "Job-Suffix" เป็น Primary Key
+  job            String
+  suffix         String
+  item           String?
+  qtyRelease     Int?
+  qtyCurrent     Int?
+  productCode    String?
+  startTransDate DateTime // วันที่เปิด Job (จุดตั้งต้นคำนวณ Aging)
+  lastTransDate  DateTime // วันที่อัพเดทล่าสุด
+  currentOperNum Int
+  currentStatus  String   // 'R' หรือ 'S'
+  currentWc      String?
+  currentWcDesc  String?
+  updatedAt      DateTime @updatedAt
+}

@@ -1,0 +1,31 @@
+{
+  "name": "job-aging-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "dev": "nodemon index.js" 
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@prisma/client": "^6.17.0",
+    "cors": "^2.8.6",
+    "csv-parser": "^3.2.1",
+    "dayjs": "^1.11.21",
+    "express": "^5.2.1",
+    "multer": "^2.1.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.9.2",
+    "nodemon": "^3.1.14",
+    "prisma": "^6.17.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}
