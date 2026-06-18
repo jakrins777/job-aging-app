@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import dayjs from 'dayjs';
-
+import * as XLSX from 'xlsx';
 function JobTable({ jobs }) {
   // -----------------------------------------
   // 1. State สำหรับฟิลเตอร์ต่างๆ (Search, Dropdown, Calendar)
@@ -81,6 +81,28 @@ function JobTable({ jobs }) {
     }
   };
 
+  const handleExport = (exportType) => {
+    // สมมติว่าพี่มี State 'jobs' (ข้อมูลทั้งหมด) และ 'filteredJobs' (ข้อมูลที่ผ่านการค้นหา/ฟิลเตอร์แล้ว)
+    // **หมายเหตุ: ถ้าพี่ตั้งชื่อตัวแปรที่เก็บข้อมูลที่ฟิลเตอร์แล้วเป็นชื่ออื่น ให้แก้ตรงนี้ให้ตรงกันนะครับ**
+    const dataToExport = exportType === 'all' ? jobs : filteredJobs;
+
+    if (!dataToExport || dataToExport.length === 0) {
+      alert("ไม่มีข้อมูลสำหรับทำการ Export ครับ");
+      return;
+    }
+
+    // 1. แปลงข้อมูล JSON (Array of Objects) ให้เป็นรูปแบบที่ Excel อ่านได้ (Worksheet)
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+
+    // 2. สร้างไฟล์ Excel (Workbook) แล้วเอา Worksheet ยัดเข้าไป
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "JobsData");
+
+    // 3. ตั้งชื่อไฟล์และสั่งดาวน์โหลด
+    // ถ้าระบุว่า all ชื่อไฟล์จะเป็น Jobs_Report_all.xlsx 
+    const fileName = `Jobs_Report_${exportType}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
@@ -164,6 +186,53 @@ function JobTable({ jobs }) {
               <option value="S">Suspended (Stopped)</option>
             </select>
           </div>
+        </div>
+
+        {/* 🌟 โซนปุ่ม Export (เพิ่มเข้ามาใหม่) 🌟 */}
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px', paddingTop: '20px', borderTop: '1px dashed #FADBD8' }}>
+          <button
+            onClick={() => handleExport('filtered')}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#FFFFFF',
+              color: '#E26D5C',
+              border: '1px solid #E26D5C',
+              borderRadius: '10px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 4px rgba(226, 109, 92, 0.1)'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#FFF5F3'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
+          >
+            📥 Export Filtered
+          </button>
+
+          <button
+            onClick={() => handleExport('all')}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#E26D5C',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '10px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 6px rgba(226, 109, 92, 0.3)'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#D96C5C'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#E26D5C'}
+          >
+            📊 Export All Data
+          </button>
         </div>
       </div>
 
