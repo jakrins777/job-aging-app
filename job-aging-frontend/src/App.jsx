@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import JobTable from './components/JobTable';
 
-const API_URL = 'https://zany-happiness-q7pwppq9xq4xhxpr4-3000.app.github.dev/api';
+const API_URL = 'https://job-aging-app.onrender.com/api';
 
 function App() {
   const [jobs, setJobs] = useState([]);
