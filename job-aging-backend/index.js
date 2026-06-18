@@ -8,6 +8,16 @@ const { PrismaClient } = require('@prisma/client');
 const app = express();
 const prisma = new PrismaClient();
 
+const corsOptions = {
+  origin: [
+    'https://job-aging-app.vercel.app', // ต้องมีโดเมน Vercel ของพี่เป๊ะๆ (ไม่มีเครื่องหมาย / ปิดท้าย)
+    'http://localhost:5173'             // เผื่อทดสอบในเครื่องตัวเอง
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 // ตรวจสอบและสร้างโฟลเดอร์ uploads อัตโนมัติ
 if (!fs.existsSync('uploads')) {
   fs.mkdirSync('uploads');
@@ -15,15 +25,7 @@ if (!fs.existsSync('uploads')) {
 
 const upload = multer({ dest: 'uploads/' });
 
-const corsOptions = {
-  origin: [
-    'https://job-aging-app.vercel.app', // โดเมน Vercel ของพี่
-    'http://localhost:3000',            // เผื่อไว้ทดสอบในเครื่อง
-    'http://localhost:5173'             // เผื่อใช้ Vite
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true, // อนุญาตให้ส่ง Cookie หรือ Header พิเศษได้
-};
+
 
 app.use(cors());
 app.use(express.json());
