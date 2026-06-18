@@ -7,12 +7,26 @@ function JobTable({ jobs }) {
   // -----------------------------------------
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15; // กำหนดจำนวนรายการต่อ 1 หน้า (เปลี่ยนเลขได้ตามชอบ)
-
+  const [jumpToPage, setJumpToPage] = useState('');
   // ถ้ารายการ jobs เปลี่ยนไป (เช่น มีการค้นหา หรือ ฟิลเตอร์) ให้กลับมาเริ่มที่หน้า 1 ใหม่เสมอ
   useEffect(() => {
     setCurrentPage(1);
   }, [jobs]);
 
+  const handleJumpPage = (e) => {
+    e.preventDefault(); // ป้องกันหน้าเว็บรีเฟรช
+
+    const pageNumber = parseInt(jumpToPage, 10);
+
+    // เช็คว่าตัวเลขถูกต้องไหม: ต้องมากกว่า 0 และไม่เกินจำนวนหน้าทั้งหมด
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber); // สั่งเปลี่ยนหน้า
+      setJumpToPage(''); // เคลียร์ช่องให้ว่างหลังจากเปลี่ยนหน้าแล้ว (ใส่หรือไม่ใส่ก็ได้)
+    } else {
+      // ถ้ากรอกเลขมั่ว ให้แจ้งเตือน
+      alert(`กรุณากรอกเลขหน้าให้ถูกต้อง (1 - ${totalPages})`);
+    }
+  };
   // คำนวณหา Index ของข้อมูลที่จะตัดมาโชว์ในหน้านั้นๆ
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -114,22 +128,22 @@ function JobTable({ jobs }) {
       {/* แถบควบคุมการเปลี่ยนหน้า (Pagination Footer) */}
       {jobs.length > 0 && (
         <div style={{ padding: '16px 24px', backgroundColor: '#FFF5F3', borderTop: '1px solid #FADBD8', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          
+
           <div style={{ fontSize: '13px', color: '#E26D5C', fontWeight: '600' }}>
             Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, jobs.length)} of {jobs.length} Entries
           </div>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button 
-              onClick={goToPrevPage} 
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <button
+              onClick={goToPrevPage}
               disabled={currentPage === 1}
-              style={{ 
-                padding: '8px 16px', 
-                backgroundColor: currentPage === 1 ? '#FADBD8' : '#E26D5C', 
-                color: '#FFFFFF', 
-                border: 'none', 
-                borderRadius: '8px', 
-                fontWeight: 'bold', 
+              style={{
+                padding: '8px 16px',
+                backgroundColor: currentPage === 1 ? '#FADBD8' : '#E26D5C',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 'bold',
                 cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                 opacity: currentPage === 1 ? 0.6 : 1,
                 transition: 'all 0.2s'
@@ -137,21 +151,21 @@ function JobTable({ jobs }) {
             >
               Previous
             </button>
-            
+
             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#5C4D4A' }}>
               Page {currentPage} of {totalPages}
             </span>
-            
-            <button 
-              onClick={goToNextPage} 
+
+            <button
+              onClick={goToNextPage}
               disabled={currentPage === totalPages}
-              style={{ 
-                padding: '8px 16px', 
-                backgroundColor: currentPage === totalPages ? '#FADBD8' : '#E26D5C', 
-                color: '#FFFFFF', 
-                border: 'none', 
-                borderRadius: '8px', 
-                fontWeight: 'bold', 
+              style={{
+                padding: '8px 16px',
+                backgroundColor: currentPage === totalPages ? '#FADBD8' : '#E26D5C',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: 'bold',
                 cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
                 opacity: currentPage === totalPages ? 0.6 : 1,
                 transition: 'all 0.2s'
@@ -159,6 +173,57 @@ function JobTable({ jobs }) {
             >
               Next
             </button>
+
+          
+            <form
+              onSubmit={handleJumpPage}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                borderLeft: '2px solid #FADBD8',
+                paddingLeft: '16px',
+                marginLeft: '4px'
+              }}
+            >
+              <span style={{ fontSize: '13px', color: '#5C4D4A', fontWeight: '600' }}>Go to:</span>
+              <input
+                type="number"
+                min="1"
+                max={totalPages}
+                value={jumpToPage}
+                onChange={(e) => setJumpToPage(e.target.value)}
+                placeholder="..."
+                style={{
+                  width: '60px',
+                  padding: '6px 8px',
+                  border: '1px solid #FADBD8',
+                  borderRadius: '6px',
+                  textAlign: 'center',
+                  outline: 'none',
+                  fontSize: '14px',
+                  color: '#5C4D4A'
+                }}
+              />
+              <button
+                type="submit"
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#E26D5C',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Go
+              </button>
+            </form>
+            
+
           </div>
         </div>
       )}
