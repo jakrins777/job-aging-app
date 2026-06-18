@@ -1,15 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import dayjs from 'dayjs'; // นำเข้า dayjs มาใช้คำนวณวันที่สำหรับระบบค้นหา
+import dayjs from 'dayjs';
 import JobTable from './components/JobTable';
 
-const API_URL = 'https://job-aging-app.onrender.com/api';
+const API_URL = 'https://zany-happiness-q7pwppq9xq4xhxpr4-3000.app.github.dev/api';
 
 function App() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // State สำหรับฟิลเตอร์ต่างๆ
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [dateFilter, setDateFilter] = useState('');
+  const [wcFilter, setWcFilter] = useState('ALL');
+  const [operFilter, setOperFilter] = useState('ALL');
 
   const fetchJobs = async () => {
     try {
@@ -47,44 +52,56 @@ function App() {
   };
 
   // -----------------------------------------------------------------
-  // 🚀 ระบบ Global Search: ค้นหาได้จากทุกคอลัมน์
+  // 🚀 สกัดข้อมูลทำ Dropdown อัตโนมัติ (ใช้ useMemo เพื่อความเร็ว)
+  // -----------------------------------------------------------------
+  const uniqueWCs = useMemo(() => {
+    return [...new Set(jobs.map(job => job.currentWc).filter(Boolean))].sort();
+  }, [jobs]);
+
+  const uniqueOpers = useMemo(() => {
+    return [...new Set(jobs.map(job => job.currentOperNum).filter(Boolean))].sort((a, b) => a - b);
+  }, [jobs]);
+
+  // -----------------------------------------------------------------
+  // 🚀 ลอจิกการกรองข้อมูล (ประมวลผลทุกฟิลเตอร์ร่วมกัน)
   // -----------------------------------------------------------------
   const filteredJobs = jobs.filter((job) => {
     const term = searchTerm.toLowerCase().trim();
-
-    // 1. ตรวจสอบสถานะ (Status Filter)
-    const matchesStatus = statusFilter === 'ALL' || job.currentStatus === statusFilter;
-
-    // ถ้าไม่ได้พิมพ์ค้นหาอะไรเลย ให้กรองแค่สถานะอย่างเดียว
-    if (!term) return matchesStatus;
-
-    // จำลองการคำนวณวันเหมือนในตาราง เพื่อให้ค้นหาจำนวนวัน (Aging) ได้
     const start = dayjs(job.startTransDate);
+
+    // คำนวณ Aging (เผื่อค้นหาใน Global Search)
     let daysInSystem = dayjs().diff(start, 'day');
     if (isNaN(daysInSystem)) daysInSystem = 0;
 
-    // 2. กวาดข้อมูลหาทุกฟิลด์ที่มี
-    const matchesSearch = (
-      (job.jobId && job.jobId.toLowerCase().includes(term)) ||                               // ค้นหา Job-Suffix
-      (job.item && job.item.toLowerCase().includes(term)) ||                                 // ค้นหา Item
-      (job.productCode && job.productCode.toLowerCase().includes(term)) ||                   // ค้นหา Product Code
-      (job.currentWc && job.currentWc.toLowerCase().includes(term)) ||                       // ค้นหา WC
-      (job.currentWcDesc && job.currentWcDesc.toLowerCase().includes(term)) ||               // ค้นหา WC Description
-      (job.currentOperNum && String(job.currentOperNum).includes(term)) ||                   // ค้นหา Oper Num
-      (job.qtyRelease && String(job.qtyRelease).includes(term)) ||                           // ค้นหา Qty Release
-      (job.qtyCurrent && String(job.qtyCurrent).includes(term)) ||                           // ค้นหา Qty
-      (job.currentStatus && job.currentStatus.toLowerCase() === term) ||                     // ค้นหาสถานะ R, S
-      (start.format('DD/MM/YYYY').includes(term)) ||                                         // ค้นหาวันที่เข้าระบบ (Trans Date) เช่น "09/06"
-      (String(daysInSystem).includes(term))                                                  // ค้นหาจำนวนวัน (Aging) เช่นพิมพ์ "5" หาคนที่ค้าง 5 วัน
+    // 1. กรองสถานะ
+    const matchesStatus = statusFilter === 'ALL' || job.currentStatus === statusFilter;
+
+    // 2. กรอง WC (Dropdown)
+    const matchesWc = wcFilter === 'ALL' || job.currentWc === wcFilter;
+
+    // 3. กรอง Oper Num (Dropdown)
+    const matchesOper = operFilter === 'ALL' || String(job.currentOperNum) === String(operFilter);
+
+    // 4. กรองวันที่ (Calendar) - input type="date" จะให้ค่าเป็น YYYY-MM-DD
+    const matchesDate = !dateFilter || start.format('YYYY-MM-DD') === dateFilter;
+
+    // 5. ค้นหาแบบกว้าง (Global Search - ช่องพิมพ์)
+    const matchesSearch = !term || (
+      (job.jobId && job.jobId.toLowerCase().includes(term)) ||
+      (job.item && job.item.toLowerCase().includes(term)) ||
+      (job.productCode && job.productCode.toLowerCase().includes(term)) ||
+      (job.currentWcDesc && job.currentWcDesc.toLowerCase().includes(term)) ||
+      (String(daysInSystem).includes(term))
     );
 
-    return matchesSearch && matchesStatus;
+    // ต้องตรงตามเงื่อนไขทุกข้อถึงจะแสดงผล
+    return matchesStatus && matchesWc && matchesOper && matchesDate && matchesSearch;
   });
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FFF5F3', padding: '40px 20px', fontFamily: 'sans-serif', boxSizing: 'border-box' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        
+      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+
         {/* Header Section */}
         <div style={{ marginBottom: '32px' }}>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#E26D5C', margin: 0, letterSpacing: '-0.02em' }}>Job Aging Monitoring</h1>
@@ -92,7 +109,7 @@ function App() {
         </div>
 
         {/* Upload Zone */}
-        <div style={{ backgroundColor: '#FFFFFF', border: '2px dashed #FADBD8', borderRadius: '16px', padding: '32px', marginBottom: '32px', textAlign: 'center', transition: 'all 0.3s' }}>
+        <div style={{ backgroundColor: '#FFFFFF', border: '2px dashed #FADBD8', borderRadius: '16px', padding: '32px', marginBottom: '24px', textAlign: 'center', transition: 'all 0.3s' }}>
           <input type="file" accept=".csv" onChange={handleUpload} id="csv-upload" style={{ display: 'none' }} />
           <label htmlFor="csv-upload" style={{ cursor: 'pointer', display: 'block' }}>
             <span style={{ display: 'block', fontSize: '16px', fontWeight: '600', color: loading ? '#E26D5C' : '#F5B7B1' }}>
@@ -101,49 +118,94 @@ function App() {
           </label>
         </div>
 
-        {/* Control Panel (Search & Filter Bar) */}
+        {/* Control Panel (Search & Multi-Filters) */}
         <div style={{ backgroundColor: '#FFFFFF', padding: '24px', borderRadius: '20px', border: '1px solid #FADBD8', boxShadow: '0 4px 6px -1px rgba(250, 219, 216, 0.3)', marginBottom: '24px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', alignItems: 'center' }}>
-            
-            {/* 🔍 เปลี่ยนชื่อและ Placeholder ให้สื่อว่าค้นหาได้ทุกอย่าง */}
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', alignItems: 'end' }}>
+
+            {/* Global Search */}
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#E26D5C', textTransform: 'uppercase', marginBottom: '8px' }}>
-                🔍 Global Search (ค้นหาได้ทุกข้อมูล)
+                🔍 ค้นหาทั่วไป
               </label>
               <input
                 type="text"
-                placeholder="Search Item, Job, WC, Date, or Days..."
+                placeholder="Item, Job, Description..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{ width: '100%', padding: '12px 16px', backgroundColor: '#FFF5F3', border: '1px solid #FADBD8', borderRadius: '12px', fontSize: '14px', color: '#E26D5C', boxSizing: 'border-box', outline: 'none' }}
               />
             </div>
 
+            {/* Calendar Filter (วันที่เข้าระบบ) */}
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#E26D5C', textTransform: 'uppercase', marginBottom: '8px' }}>
+                📅 วันที่เข้าระบบ (Start Date)
+              </label>
+              <input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                style={{ width: '100%', padding: '10px 16px', backgroundColor: '#FFF5F3', border: '1px solid #FADBD8', borderRadius: '12px', fontSize: '14px', color: '#E26D5C', boxSizing: 'border-box', outline: 'none', cursor: 'pointer' }}
+              />
+            </div>
+
+            {/* WC Dropdown */}
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#E26D5C', textTransform: 'uppercase', marginBottom: '8px' }}>
+                🏭 Work Center (WC)
+              </label>
+              <select
+                value={wcFilter}
+                onChange={(e) => setWcFilter(e.target.value)}
+                style={{ width: '100%', padding: '12px 16px', backgroundColor: '#FFF5F3', border: '1px solid #FADBD8', borderRadius: '12px', fontSize: '14px', color: '#E26D5C', boxSizing: 'border-box', outline: 'none', cursor: 'pointer' }}
+              >
+                <option value="ALL">ทุก Work Center</option>
+                {uniqueWCs.map(wc => (
+                  <option key={wc} value={wc}>{wc}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Oper Num Dropdown */}
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#E26D5C', textTransform: 'uppercase', marginBottom: '8px' }}>
+                ⚙️ Operation Num
+              </label>
+              <select
+                value={operFilter}
+                onChange={(e) => setOperFilter(e.target.value)}
+                style={{ width: '100%', padding: '12px 16px', backgroundColor: '#FFF5F3', border: '1px solid #FADBD8', borderRadius: '12px', fontSize: '14px', color: '#E26D5C', boxSizing: 'border-box', outline: 'none', cursor: 'pointer' }}
+              >
+                <option value="ALL">ทุก Operation</option>
+                {uniqueOpers.map(op => (
+                  <option key={op} value={op}>{op}</option>
+                ))}
+              </select>
+            </div>
+
             {/* Status Filter */}
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#E26D5C', textTransform: 'uppercase', marginBottom: '8px' }}>
-                🎛️ Job Status Filter
+                🎛️ สถานะ (Status)
               </label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 style={{ width: '100%', padding: '12px 16px', backgroundColor: '#FFF5F3', border: '1px solid #FADBD8', borderRadius: '12px', fontSize: '14px', color: '#E26D5C', boxSizing: 'border-box', outline: 'none', cursor: 'pointer' }}
               >
-                <option value="ALL">Show All Jobs</option>
-                <option value="R">Active Jobs Only (Received)</option>
-                <option value="S">Suspended Jobs Only (Stopped)</option>
+                <option value="ALL">ทุกสถานะ</option>
+                <option value="R">Active (Received)</option>
+                <option value="S">Suspended (Stopped)</option>
               </select>
             </div>
 
-            {/* KPI Summary Card */}
-            <div style={{ backgroundColor: '#FEF0ED', border: '1px solid #FADBD8', borderRadius: '16px', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxSizing: 'border-box' }}>
+            {/* KPI Summary Card - ย่อส่วนลงมาให้พอดีกับแถว */}
+            <div style={{ backgroundColor: '#FEF0ED', border: '1px solid #FADBD8', borderRadius: '12px', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxSizing: 'border-box', height: '45px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#E26D5C', textTransform: 'uppercase' }}>พบข้อมูล</span>
               <div>
-                <p style={{ fontSize: '11px', fontWeight: 'bold', color: '#E26D5C', margin: 0, textTransform: 'uppercase' }}>Total Outstanding</p>
-                <p style={{ fontSize: '13px', color: '#F28F79', margin: '2px 0 0 0' }}>{searchTerm ? 'Filtered Results' : 'All Data'}</p>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '32px', fontWeight: '800', color: '#C25949', letterSpacing: '-0.05em' }}>{filteredJobs.length}</span>
-                <span style={{ fontSize: '12px', fontWeight: '600', color: '#E26D5C', marginLeft: '4px' }}>Jobs</span>
+                <span style={{ fontSize: '20px', fontWeight: '800', color: '#C25949' }}>{filteredJobs.length}</span>
+                <span style={{ fontSize: '11px', fontWeight: '600', color: '#E26D5C', marginLeft: '4px' }}>Jobs</span>
               </div>
             </div>
 
